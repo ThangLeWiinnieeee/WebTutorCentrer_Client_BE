@@ -1,0 +1,89 @@
+const authService = require("./auth.service");
+const { successResponse, errorResponse } = require("../../core/utils/response");
+const { REFRESH_TOKEN_COOKIE_OPTIONS } = require("../../core/utils/token");
+const MESSAGE = require("../../core/constants/message");
+const HTTP_STATUS = require("../../core/constants/status");
+
+const register = async (req, res, next) => {
+  try {
+    const { accessToken, refreshToken, user } = await authService.register(req.body);
+
+    res.cookie("refreshToken", refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
+
+    return successResponse(res, {
+      statusCode: HTTP_STATUS.CREATED,
+      message: MESSAGE.REGISTER_SUCCESS,
+      data: { accessToken, user },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const login = async (req, res, next) => {
+  try {
+    const { accessToken, refreshToken, user } = await authService.login(req.body);
+
+    res.cookie("refreshToken", refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
+
+    return successResponse(res, {
+      statusCode: HTTP_STATUS.OK,
+      message: MESSAGE.LOGIN_SUCCESS,
+      data: { accessToken, user },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const logout = async (req, res, next) => {
+  try {
+    await authService.logout(req.user.id);
+
+    res.clearCookie("refreshToken", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+    });
+
+    return successResponse(res, {
+      statusCode: HTTP_STATUS.OK,
+      message: MESSAGE.LOGOUT_SUCCESS,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const refreshToken = async (req, res, next) => {
+  try {
+    const token = req.cookies?.refreshToken;
+    const { accessToken, refreshToken: newRefreshToken } = await authService.refreshToken(token);
+
+    res.cookie("refreshToken", newRefreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
+
+    return successResponse(res, {
+      statusCode: HTTP_STATUS.OK,
+      message: MESSAGE.REFRESH_TOKEN_SUCCESS,
+      data: { accessToken },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const getMe = async (req, res, next) => {
+  try {
+    const user = await authService.getMe(req.user.id);
+
+    return successResponse(res, {
+      statusCode: HTTP_STATUS.OK,
+      message: "Lấy thông tin người dùng thành công",
+      data: { user },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = { register, login, logout, refreshToken, getMe };
