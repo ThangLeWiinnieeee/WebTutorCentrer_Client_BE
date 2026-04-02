@@ -1,0 +1,42 @@
+const OTP_LENGTH = 6;
+const OTP_EXPIRES_MINUTES = 10;
+const OTP_RESEND_COOLDOWN_SECONDS = 120; // 2 phút
+
+const generateOtp = () => {
+  const min = Math.pow(10, OTP_LENGTH - 1);
+  const max = Math.pow(10, OTP_LENGTH) - 1;
+  return String(Math.floor(Math.random() * (max - min + 1)) + min);
+};
+
+const getOtpExpiry = () => {
+  const expires = new Date();
+  expires.setMinutes(expires.getMinutes() + OTP_EXPIRES_MINUTES);
+  return expires;
+};
+
+const isOtpExpired = (expiresAt) => {
+  return !expiresAt || new Date() > new Date(expiresAt);
+};
+
+// createdAt là timestamp của OTP document trong DB
+const isResendTooSoon = (createdAt) => {
+  if (!createdAt) return false;
+  const elapsedSeconds = (Date.now() - new Date(createdAt).getTime()) / 1000;
+  return elapsedSeconds < OTP_RESEND_COOLDOWN_SECONDS;
+};
+
+const getResendWaitSeconds = (createdAt) => {
+  if (!createdAt) return 0;
+  const elapsedSeconds = (Date.now() - new Date(createdAt).getTime()) / 1000;
+  return Math.ceil(OTP_RESEND_COOLDOWN_SECONDS - elapsedSeconds);
+};
+
+module.exports = {
+  generateOtp,
+  getOtpExpiry,
+  isOtpExpired,
+  isResendTooSoon,
+  getResendWaitSeconds,
+  OTP_EXPIRES_MINUTES,
+  OTP_RESEND_COOLDOWN_SECONDS,
+};

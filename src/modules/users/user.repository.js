@@ -6,10 +6,8 @@ const findByEmail = async (email, includePassword = false) => {
   return await query;
 };
 
-const findById = async (id, includeRefreshToken = false) => {
-  const query = User.findById(id);
-  if (includeRefreshToken) query.select("+refreshToken");
-  return await query;
+const findById = async (id) => {
+  return await User.findById(id);
 };
 
 const create = async (userData) => {
@@ -25,10 +23,20 @@ const findByRefreshToken = async (refreshToken) => {
   return await User.findOne({ refreshToken }).select("+refreshToken");
 };
 
+const verifyUser = async (userId) => {
+  return await User.findByIdAndUpdate(userId, { isVerified: true }, { new: true });
+};
+
+const updatePassword = async (userId, hashedPassword) => {
+  return await User.findByIdAndUpdate(userId, { password: hashedPassword }, { new: true });
+};
+
 module.exports = {
   findByEmail,
   findById,
   create,
   updateRefreshToken,
   findByRefreshToken,
+  verifyUser,
+  updatePassword,
 };

@@ -1,19 +1,47 @@
 const authService = require("./auth.service");
-const { successResponse, errorResponse } = require("../../core/utils/response");
+const { successResponse } = require("../../core/utils/response");
 const { REFRESH_TOKEN_COOKIE_OPTIONS } = require("../../core/utils/token");
 const MESSAGE = require("../../core/constants/message");
 const HTTP_STATUS = require("../../core/constants/status");
 
 const register = async (req, res, next) => {
   try {
-    const { accessToken, refreshToken, user } = await authService.register(req.body);
+    const { email } = await authService.register(req.body);
+
+    return successResponse(res, {
+      statusCode: HTTP_STATUS.CREATED,
+      message: MESSAGE.OTP_SENT,
+      data: { email },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const verifyOtp = async (req, res, next) => {
+  try {
+    const { accessToken, refreshToken, user } = await authService.verifyOtp(req.body);
 
     res.cookie("refreshToken", refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
 
     return successResponse(res, {
-      statusCode: HTTP_STATUS.CREATED,
-      message: MESSAGE.REGISTER_SUCCESS,
+      statusCode: HTTP_STATUS.OK,
+      message: MESSAGE.OTP_VERIFY_SUCCESS,
       data: { accessToken, user },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const resendOtp = async (req, res, next) => {
+  try {
+    const { email } = await authService.resendOtp(req.body);
+
+    return successResponse(res, {
+      statusCode: HTTP_STATUS.OK,
+      message: MESSAGE.OTP_RESENT,
+      data: { email },
     });
   } catch (error) {
     next(error);
@@ -72,9 +100,9 @@ const refreshToken = async (req, res, next) => {
   }
 };
 
-const getMe = async (req, res, next) => {
+const getUserInfo = async (req, res, next) => {
   try {
-    const user = await authService.getMe(req.user.id);
+    const user = await authService.getUserInfo(req.user.id);
 
     return successResponse(res, {
       statusCode: HTTP_STATUS.OK,
@@ -86,4 +114,4 @@ const getMe = async (req, res, next) => {
   }
 };
 
-module.exports = { register, login, logout, refreshToken, getMe };
+module.exports = { register, verifyOtp, resendOtp, login, logout, refreshToken, getUserInfo };

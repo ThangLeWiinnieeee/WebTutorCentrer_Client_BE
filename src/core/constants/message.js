@@ -10,6 +10,16 @@ const MESSAGE = {
   EMAIL_ALREADY_EXISTS: "Email đã được sử dụng",
   INVALID_CREDENTIALS: "Email hoặc mật khẩu không đúng",
   PASSWORD_MISMATCH: "Mật khẩu xác nhận không khớp",
+  EMAIL_NOT_VERIFIED: "Email chưa được xác thực, vui lòng kiểm tra hộp thư",
+
+  // OTP
+  OTP_SENT: "Mã OTP đã được gửi đến email của bạn",
+  OTP_RESENT: "Mã OTP mới đã được gửi đến email của bạn",
+  OTP_VERIFY_SUCCESS: "Xác thực email thành công",
+  OTP_INVALID: "Mã OTP không hợp lệ",
+  OTP_EXPIRED: "Mã OTP đã hết hạn, vui lòng yêu cầu mã mới",
+  OTP_ALREADY_VERIFIED: "Email này đã được xác thực",
+  OTP_RESEND_TOO_SOON: "Vui lòng chờ trước khi yêu cầu gửi lại mã OTP",
 
   // Token
   TOKEN_MISSING: "Không tìm thấy token xác thực",

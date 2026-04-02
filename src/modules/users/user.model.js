@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const ROLES = require("../../core/constants/role");
+const ACCOUNT_TYPE = require("../../core/constants/accountType");
 
 const userSchema = new mongoose.Schema(
   {
@@ -20,19 +21,24 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, "Mật khẩu là bắt buộc"],
       minlength: [6, "Mật khẩu phải có ít nhất 6 ký tự"],
       select: false,
+      default: null,
     },
     role: {
       type: String,
       enum: Object.values(ROLES),
       default: ROLES.STUDENT,
     },
+    type: {
+      type: String,
+      enum: Object.values(ACCOUNT_TYPE),
+      default: ACCOUNT_TYPE.LOCAL,
+    },
     phone: {
       type: String,
+      required: [true, "Số điện thoại là bắt buộc"],
       trim: true,
-      default: null,
     },
     avatar: {
       type: String,
@@ -41,6 +47,10 @@ const userSchema = new mongoose.Schema(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
     },
     refreshToken: {
       type: String,

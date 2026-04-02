@@ -25,7 +25,14 @@ const registerSchema = Joi.object({
     .messages({
       "any.only": `Vai trò phải là '${ROLES.STUDENT}' hoặc '${ROLES.TUTOR}'`,
     }),
-  phone: Joi.string().allow("", null).optional(),
+  phone: Joi.string()
+    .pattern(/^(0[3|5|7|8|9])+([0-9]{8})$/)
+    .required()
+    .messages({
+      "string.pattern.base": "Số điện thoại không hợp lệ (phải là số điện thoại Việt Nam 10 số)",
+      "any.required": "Số điện thoại là bắt buộc",
+      "string.empty": "Số điện thoại không được để trống",
+    }),
 });
 
 const loginSchema = Joi.object({
@@ -35,6 +42,25 @@ const loginSchema = Joi.object({
   }),
   password: Joi.string().required().messages({
     "any.required": "Mật khẩu là bắt buộc",
+  }),
+});
+
+const verifyOtpSchema = Joi.object({
+  email: Joi.string().email().required().messages({
+    "string.email": "Email không hợp lệ",
+    "any.required": "Email là bắt buộc",
+  }),
+  otp: Joi.string().length(6).pattern(/^\d+$/).required().messages({
+    "string.length": "Mã OTP phải có đúng 6 chữ số",
+    "string.pattern.base": "Mã OTP chỉ gồm các chữ số",
+    "any.required": "Mã OTP là bắt buộc",
+  }),
+});
+
+const resendOtpSchema = Joi.object({
+  email: Joi.string().email().required().messages({
+    "string.email": "Email không hợp lệ",
+    "any.required": "Email là bắt buộc",
   }),
 });
 
@@ -48,4 +74,4 @@ const validate = (schema) => (req, res, next) => {
   next();
 };
 
-module.exports = { registerSchema, loginSchema, validate };
+module.exports = { registerSchema, loginSchema, verifyOtpSchema, resendOtpSchema, validate };
