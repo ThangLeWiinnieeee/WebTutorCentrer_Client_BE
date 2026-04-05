@@ -64,6 +64,39 @@ const resendOtpSchema = Joi.object({
   }),
 });
 
+const forgotPasswordSchema = Joi.object({
+  email: Joi.string().email().required().messages({
+    "string.email": "Email không hợp lệ",
+    "any.required": "Email là bắt buộc",
+  }),
+});
+
+const verifyForgotPasswordOtpSchema = Joi.object({
+  email: Joi.string().email().required().messages({
+    "string.email": "Email không hợp lệ",
+    "any.required": "Email là bắt buộc",
+  }),
+  otp: Joi.string().length(6).pattern(/^\d+$/).required().messages({
+    "string.length": "Mã OTP phải có đúng 6 chữ số",
+    "string.pattern.base": "Mã OTP chỉ gồm các chữ số",
+    "any.required": "Mã OTP là bắt buộc",
+  }),
+});
+
+const resetPasswordSchema = Joi.object({
+  resetToken: Joi.string().required().messages({
+    "any.required": "Reset token là bắt buộc",
+  }),
+  newPassword: Joi.string().min(6).required().messages({
+    "string.min": "Mật khẩu mới phải có ít nhất 6 ký tự",
+    "any.required": "Mật khẩu mới là bắt buộc",
+  }),
+  confirmPassword: Joi.string().valid(Joi.ref("newPassword")).required().messages({
+    "any.only": "Mật khẩu xác nhận không khớp",
+    "any.required": "Mật khẩu xác nhận là bắt buộc",
+  }),
+});
+
 const validate = (schema) => (req, res, next) => {
   const { error, value } = schema.validate(req.body, { abortEarly: false });
   if (error) {
@@ -74,4 +107,13 @@ const validate = (schema) => (req, res, next) => {
   next();
 };
 
-module.exports = { registerSchema, loginSchema, verifyOtpSchema, resendOtpSchema, validate };
+module.exports = {
+  registerSchema,
+  loginSchema,
+  verifyOtpSchema,
+  resendOtpSchema,
+  forgotPasswordSchema,
+  verifyForgotPasswordOtpSchema,
+  resetPasswordSchema,
+  validate,
+};

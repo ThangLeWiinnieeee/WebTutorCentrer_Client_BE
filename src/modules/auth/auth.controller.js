@@ -100,13 +100,54 @@ const refreshToken = async (req, res, next) => {
   }
 };
 
+const forgotPassword = async (req, res, next) => {
+  try {
+    const { email } = await authService.forgotPassword(req.body);
+
+    return successResponse(res, {
+      statusCode: HTTP_STATUS.OK,
+      message: MESSAGE.FORGOT_PASSWORD_OTP_SENT,
+      data: { email },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const verifyForgotPasswordOtp = async (req, res, next) => {
+  try {
+    const { resetToken } = await authService.verifyForgotPasswordOtp(req.body);
+
+    return successResponse(res, {
+      statusCode: HTTP_STATUS.OK,
+      message: MESSAGE.FORGOT_PASSWORD_OTP_VERIFY_SUCCESS,
+      data: { resetToken },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+const resetPassword = async (req, res, next) => {
+  try {
+    await authService.resetPassword(req.body);
+
+    return successResponse(res, {
+      statusCode: HTTP_STATUS.OK,
+      message: MESSAGE.RESET_PASSWORD_SUCCESS,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const getUserInfo = async (req, res, next) => {
   try {
     const user = await authService.getUserInfo(req.user.id);
 
     return successResponse(res, {
       statusCode: HTTP_STATUS.OK,
-      message: "Lấy thông tin người dùng thành công",
+      message: MESSAGE.USER_INFO_SUCCESS,
       data: { user },
     });
   } catch (error) {
@@ -114,4 +155,15 @@ const getUserInfo = async (req, res, next) => {
   }
 };
 
-module.exports = { register, verifyOtp, resendOtp, login, logout, refreshToken, getUserInfo };
+module.exports = {
+  register,
+  verifyOtp,
+  resendOtp,
+  forgotPassword,
+  verifyForgotPasswordOtp,
+  resetPassword,
+  login,
+  logout,
+  refreshToken,
+  getUserInfo,
+};
