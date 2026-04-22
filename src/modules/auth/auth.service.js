@@ -1,3 +1,4 @@
+const { OAuth2Client } = require("google-auth-library");
 const userRepository = require("../users/user.repository");
 const otpRepository = require("../otp/otp.repository");
 const { hashPassword, comparePassword } = require("../../core/utils/hash");
@@ -8,13 +9,9 @@ const MESSAGE = require("../../core/constants/message");
 const HTTP_STATUS = require("../../core/constants/status");
 const ACCOUNT_TYPE = require("../../core/constants/accountType");
 const OTP_TYPE = require("../../core/constants/otpType");
+const AppError = require("../../core/utils/AppError");
 
-class AppError extends Error {
-  constructor(message, statusCode) {
-    super(message);
-    this.statusCode = statusCode;
-  }
-}
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 const _issueTokens = async (user) => {
   const payload = { id: user._id, email: user.email, role: user.role };
@@ -31,6 +28,7 @@ const _formatUser = (user) => ({
   role: user.role,
   type: user.type,
   phone: user.phone,
+  dateOfBirth: user.dateOfBirth,
   avatar: user.avatar,
 });
 
@@ -56,10 +54,13 @@ const _createAndSendOtp = async ({ email, fullName, type }) => {
 
 // ─── REGISTER ───
 
-const register = async ({ fullName, email, password, role, phone }) => {
+const register = async ({ fullName, email, password, role, phone, dateOfBirth }) => {
   const existingUser = await userRepository.findByEmail(email);
 
   if (existingUser) {
+    if (existingUser.type === ACCOUNT_TYPE.GOOGLE) {
+      throw new AppError(MESSAGE.EXISTING_ACCOUNT_GOOGLE, HTTP_STATUS.BAD_REQUEST);
+    }
     if (existingUser.isVerified) {
       throw new AppError(MESSAGE.EMAIL_ALREADY_EXISTS, HTTP_STATUS.CONFLICT);
     }
@@ -75,6 +76,7 @@ const register = async ({ fullName, email, password, role, phone }) => {
     password: hashedPassword,
     role,
     phone,
+    dateOfBirth,
     type: ACCOUNT_TYPE.LOCAL,
     isVerified: false,
   });
@@ -144,8 +146,9 @@ const forgotPassword = async ({ email }) => {
   // Không tiết lộ email có tồn tại hay không (bảo mật)
   if (!user || !user.isVerified) return { email };
 
-  if (user.type !== ACCOUNT_TYPE.LOCAL) {
-    throw new AppError(MESSAGE.ACCOUNT_NOT_LOCAL, HTTP_STATUS.BAD_REQUEST);
+  // Chỉ cho phép đặt lại mật khẩu cho tài khoản sử dụng mật khẩu (local)
+  if (user.type === ACCOUNT_TYPE.GOOGLE) {
+    throw new AppError(MESSAGE.ACCOUNT_NOT_CHANGE_PASSWORD, HTTP_STATUS.BAD_REQUEST);
   }
 
   await _createAndSendOtp({ email, fullName: user.fullName, type: OTP_TYPE.FORGOT_PASSWORD });
@@ -250,6 +253,49 @@ const refreshToken = async (token) => {
   return { accessToken, refreshToken: newRefreshToken };
 };
 
+// ─── GOOGLE LOGIN ───
+
+const googleLogin = async ({ credential }) => {
+  let payload;
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    payload = ticket.getPayload();
+  } catch {
+    throw new AppError(MESSAGE.GOOGLE_TOKEN_INVALID, HTTP_STATUS.UNAUTHORIZED);
+  }
+
+  const { email, name, picture } = payload;
+
+  const existingUser = await userRepository.findByEmail(email);
+
+  if (existingUser) {
+    if (existingUser.type === ACCOUNT_TYPE.LOCAL) {
+      throw new AppError(MESSAGE.EXISTING_ACCOUNT_LOCAL, HTTP_STATUS.BAD_REQUEST);
+    }
+
+    if (!existingUser.isActive) {
+      throw new AppError("Tài khoản của bạn đã bị vô hiệu hóa", HTTP_STATUS.FORBIDDEN);
+    }
+
+    const { accessToken, refreshToken } = await _issueTokens(existingUser);
+    return { accessToken, refreshToken, user: _formatUser(existingUser) };
+  }
+
+  const newUser = await userRepository.create({
+    fullName: name,
+    email,
+    avatar: picture,
+    type: ACCOUNT_TYPE.GOOGLE,
+    isVerified: true,
+  });
+
+  const { accessToken, refreshToken } = await _issueTokens(newUser);
+  return { accessToken, refreshToken, user: _formatUser(newUser) };
+};
+
 // ─── GET USER INFO ───
 
 const getUserInfo = async (userId) => {
@@ -268,6 +314,7 @@ module.exports = {
   verifyForgotPasswordOtp,
   resetPassword,
   login,
+  googleLogin,
   logout,
   refreshToken,
   getUserInfo,

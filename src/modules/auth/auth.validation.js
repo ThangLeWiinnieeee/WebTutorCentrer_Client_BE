@@ -20,10 +20,10 @@ const registerSchema = Joi.object({
     "any.required": "Mật khẩu xác nhận là bắt buộc",
   }),
   role: Joi.string()
-    .valid(ROLES.STUDENT, ROLES.TUTOR)
-    .default(ROLES.STUDENT)
+    .valid(ROLES.USER, ROLES.TUTOR)
+    .default(ROLES.USER)
     .messages({
-      "any.only": `Vai trò phải là '${ROLES.STUDENT}' hoặc '${ROLES.TUTOR}'`,
+      "any.only": `Vai trò phải là '${ROLES.USER}' hoặc '${ROLES.TUTOR}'`,
     }),
   phone: Joi.string()
     .pattern(/^(0[3|5|7|8|9])+([0-9]{8})$/)
@@ -32,6 +32,14 @@ const registerSchema = Joi.object({
       "string.pattern.base": "Số điện thoại không hợp lệ (phải là số điện thoại Việt Nam 10 số)",
       "any.required": "Số điện thoại là bắt buộc",
       "string.empty": "Số điện thoại không được để trống",
+    }),
+  dateOfBirth: Joi.date()
+    .max("now")
+    .required()
+    .messages({
+      "date.base": "Ngày sinh không hợp lệ",
+      "date.max": "Ngày sinh không được lớn hơn thời gian hiện tại",
+      "any.required": "Ngày sinh là bắt buộc",
     }),
 });
 

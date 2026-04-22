@@ -1,6 +1,6 @@
 const ROLES = {
   ADMIN: "admin",
-  STUDENT: "student",
+  USER: "user",
   TUTOR: "tutor",
 };
 

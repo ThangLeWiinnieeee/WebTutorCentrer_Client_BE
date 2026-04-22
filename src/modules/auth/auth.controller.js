@@ -1,8 +1,17 @@
 const authService = require("./auth.service");
 const { successResponse } = require("../../core/utils/response");
 const { REFRESH_TOKEN_COOKIE_OPTIONS } = require("../../core/utils/token");
+const AppError = require("../../core/utils/AppError");
 const MESSAGE = require("../../core/constants/message");
 const HTTP_STATUS = require("../../core/constants/status");
+
+// Lỗi người dùng trả JSON trực tiếp, lỗi hệ thống chuyển qua error middleware
+const handleError = (error, res, next) => {
+  if (error instanceof AppError) {
+    return res.status(error.statusCode).json({ success: false, message: error.message });
+  }
+  next(error);
+};
 
 const register = async (req, res, next) => {
   try {
@@ -14,7 +23,7 @@ const register = async (req, res, next) => {
       data: { email },
     });
   } catch (error) {
-    next(error);
+    handleError(error, res, next);
   }
 };
 
@@ -30,7 +39,7 @@ const verifyOtp = async (req, res, next) => {
       data: { accessToken, user },
     });
   } catch (error) {
-    next(error);
+    handleError(error, res, next);
   }
 };
 
@@ -44,7 +53,23 @@ const resendOtp = async (req, res, next) => {
       data: { email },
     });
   } catch (error) {
-    next(error);
+    handleError(error, res, next);
+  }
+};
+
+const googleLogin = async (req, res, next) => {
+  try {
+    const { accessToken, refreshToken, user } = await authService.googleLogin(req.body);
+
+    res.cookie("refreshToken", refreshToken, REFRESH_TOKEN_COOKIE_OPTIONS);
+
+    return successResponse(res, {
+      statusCode: HTTP_STATUS.OK,
+      message: MESSAGE.GOOGLE_LOGIN_SUCCESS,
+      data: { accessToken, user },
+    });
+  } catch (error) {
+    handleError(error, res, next);
   }
 };
 
@@ -60,7 +85,7 @@ const login = async (req, res, next) => {
       data: { accessToken, user },
     });
   } catch (error) {
-    next(error);
+    handleError(error, res, next);
   }
 };
 
@@ -79,7 +104,7 @@ const logout = async (req, res, next) => {
       message: MESSAGE.LOGOUT_SUCCESS,
     });
   } catch (error) {
-    next(error);
+    handleError(error, res, next);
   }
 };
 
@@ -96,7 +121,7 @@ const refreshToken = async (req, res, next) => {
       data: { accessToken },
     });
   } catch (error) {
-    next(error);
+    handleError(error, res, next);
   }
 };
 
@@ -110,7 +135,7 @@ const forgotPassword = async (req, res, next) => {
       data: { email },
     });
   } catch (error) {
-    next(error);
+    handleError(error, res, next);
   }
 };
 
@@ -124,7 +149,7 @@ const verifyForgotPasswordOtp = async (req, res, next) => {
       data: { resetToken },
     });
   } catch (error) {
-    next(error);
+    handleError(error, res, next);
   }
 };
 
@@ -137,7 +162,7 @@ const resetPassword = async (req, res, next) => {
       message: MESSAGE.RESET_PASSWORD_SUCCESS,
     });
   } catch (error) {
-    next(error);
+    handleError(error, res, next);
   }
 };
 
@@ -151,7 +176,7 @@ const getUserInfo = async (req, res, next) => {
       data: { user },
     });
   } catch (error) {
-    next(error);
+    handleError(error, res, next);
   }
 };
 
@@ -163,6 +188,7 @@ module.exports = {
   verifyForgotPasswordOtp,
   resetPassword,
   login,
+  googleLogin,
   logout,
   refreshToken,
   getUserInfo,

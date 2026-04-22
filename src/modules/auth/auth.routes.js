@@ -20,6 +20,7 @@ router.post("/verify-otp", validate(verifyOtpSchema), authController.verifyOtp);
 router.post("/resend-otp", validate(resendOtpSchema), authController.resendOtp);
 
 // Đăng nhập / Đăng xuất
+router.post("/google", authController.googleLogin);
 router.post("/login", validate(loginSchema), authController.login);
 router.post("/logout", authMiddleware, authController.logout);
 router.post("/refresh-token", authController.refreshToken);

@@ -28,7 +28,7 @@ const userSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: Object.values(ROLES),
-      default: ROLES.STUDENT,
+      default: ROLES.USER,
     },
     type: {
       type: String,
@@ -37,8 +37,12 @@ const userSchema = new mongoose.Schema(
     },
     phone: {
       type: String,
-      required: [true, "Số điện thoại là bắt buộc"],
+      default: null,
       trim: true,
+    },
+    dateOfBirth: {
+      type: Date,
+      default: null,
     },
     avatar: {
       type: String,
