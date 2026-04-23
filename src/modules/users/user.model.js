@@ -40,6 +40,11 @@ const userSchema = new mongoose.Schema(
       default: null,
       trim: true,
     },
+    gender: {
+      type: String,
+      enum: ["male", "female", "other", null],
+      default: null,
+    },
     dateOfBirth: {
       type: Date,
       default: null,
@@ -53,6 +58,10 @@ const userSchema = new mongoose.Schema(
       default: true,
     },
     isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    phoneActivated: {
       type: Boolean,
       default: false,
     },

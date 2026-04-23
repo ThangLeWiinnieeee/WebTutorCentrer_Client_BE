@@ -180,6 +180,40 @@ const getUserInfo = async (req, res, next) => {
   }
 };
 
+const uploadAvatar = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      throw new AppError(MESSAGE.UPLOAD_AVATAR_FAILED, HTTP_STATUS.BAD_REQUEST);
+    }
+
+    // Multer-storage-cloudinary tự upload file lên Cloudinary, URL nằm ở req.file.path
+    const avatarUrl = req.file.path;
+    const user = await authService.uploadAvatar(req.user.id, avatarUrl);
+
+    return successResponse(res, {
+      statusCode: HTTP_STATUS.OK,
+      message: MESSAGE.UPLOAD_AVATAR_SUCCESS,
+      data: { user },
+    });
+  } catch (error) {
+    handleError(error, res, next);
+  }
+};
+
+const updateProfile = async (req, res, next) => {
+  try {
+    const user = await authService.updateProfile(req.user.id, req.body);
+
+    return successResponse(res, {
+      statusCode: HTTP_STATUS.OK,
+      message: MESSAGE.UPDATE_PROFILE_SUCCESS,
+      data: { user },
+    });
+  } catch (error) {
+    handleError(error, res, next);
+  }
+};
+
 module.exports = {
   register,
   verifyOtp,
@@ -192,4 +226,6 @@ module.exports = {
   logout,
   refreshToken,
   getUserInfo,
+  uploadAvatar,
+  updateProfile,
 };

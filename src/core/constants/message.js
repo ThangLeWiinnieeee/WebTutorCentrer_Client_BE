@@ -11,6 +11,9 @@ const MESSAGE = {
 
   // User
   USER_NOT_FOUND: "Không tìm thấy người dùng",
+  UPDATE_PROFILE_SUCCESS: "Cập nhật thông tin cá nhân thành công",
+  UPLOAD_AVATAR_SUCCESS: "Cập nhật ảnh đại diện thành công",
+  UPLOAD_AVATAR_FAILED: "Tải ảnh lên thất bại",
   EMAIL_ALREADY_EXISTS: "Email đã được sử dụng",
   INVALID_CREDENTIALS: "Email hoặc mật khẩu không đúng",
   PASSWORD_MISMATCH: "Mật khẩu xác nhận không khớp",

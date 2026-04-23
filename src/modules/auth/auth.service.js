@@ -5,6 +5,7 @@ const { hashPassword, comparePassword } = require("../../core/utils/hash");
 const { generateAccessToken, generateRefreshToken, verifyRefreshToken, generateResetToken, verifyResetToken } = require("../../core/utils/token");
 const { generateOtp, getOtpExpiry, isResendTooSoon, getResendWaitSeconds, OTP_EXPIRES_MINUTES } = require("../../core/utils/otp");
 const { sendOtpEmail, sendForgotPasswordOtpEmail } = require("../../core/utils/email");
+const { deleteAvatarFromCloudinary } = require("../../core/utils/upload");
 const MESSAGE = require("../../core/constants/message");
 const HTTP_STATUS = require("../../core/constants/status");
 const ACCOUNT_TYPE = require("../../core/constants/accountType");
@@ -28,9 +29,17 @@ const _formatUser = (user) => ({
   role: user.role,
   type: user.type,
   phone: user.phone,
+  gender: user.gender,
   dateOfBirth: user.dateOfBirth,
   avatar: user.avatar,
+  isActive: user.isActive,
+  isVerified: user.isVerified,
+  phoneActivated: user.phoneActivated,
+  createdAt: user.createdAt,
+  updatedAt: user.updatedAt,
 });
+
+const _formatUserFull = _formatUser;
 
 const _createAndSendOtp = async ({ email, fullName, type }) => {
   const existingOtp = await otpRepository.findLatestActiveByEmailAndType(email, type);
@@ -79,6 +88,7 @@ const register = async ({ fullName, email, password, role, phone, dateOfBirth })
     dateOfBirth,
     type: ACCOUNT_TYPE.LOCAL,
     isVerified: false,
+    phoneActivated: true,
   });
 
   await _createAndSendOtp({ email, fullName, type: OTP_TYPE.REGISTER });
@@ -303,7 +313,47 @@ const getUserInfo = async (userId) => {
   if (!user) {
     throw new AppError(MESSAGE.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
   }
-  return user;
+  return _formatUserFull(user);
+};
+
+// ─── UPLOAD AVATAR ───
+
+const uploadAvatar = async (userId, avatarUrl) => {
+  // Lấy avatar cũ để xóa trên Cloudinary (nếu có)
+  const currentUser = await userRepository.findById(userId);
+  if (!currentUser) {
+    throw new AppError(MESSAGE.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
+  }
+
+  const oldAvatar = currentUser.avatar;
+
+  const user = await userRepository.updateProfile(userId, { avatar: avatarUrl });
+
+  // Xóa avatar cũ (không await để không block response)
+  if (oldAvatar) {
+    deleteAvatarFromCloudinary(oldAvatar);
+  }
+
+  return _formatUserFull(user);
+};
+
+// ─── UPDATE PROFILE ───
+
+const updateProfile = async (userId, { fullName, phone, gender, dateOfBirth, avatar }) => {
+  const updateData = { fullName };
+  if (phone !== undefined) {
+    updateData.phone = phone || null;
+    if (phone) updateData.phoneActivated = true;
+  }
+  if (gender !== undefined) updateData.gender = gender || null;
+  if (dateOfBirth !== undefined) updateData.dateOfBirth = dateOfBirth || null;
+  if (avatar !== undefined) updateData.avatar = avatar || null;
+
+  const user = await userRepository.updateProfile(userId, updateData);
+  if (!user) {
+    throw new AppError(MESSAGE.USER_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
+  }
+  return _formatUserFull(user);
 };
 
 module.exports = {
@@ -318,4 +368,6 @@ module.exports = {
   logout,
   refreshToken,
   getUserInfo,
+  uploadAvatar,
+  updateProfile,
 };
