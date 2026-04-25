@@ -1,6 +1,6 @@
 # Cấu trúc thư mục — Backend (WebTutorCenter_Client_BE)
 
-> **Stack:** Node.js · Express · MongoDB · Mongoose · JWT · Nodemailer · Google Auth Library · Joi · bcryptjs
+> **Stack:** Node.js · Express · MongoDB · Mongoose · JWT · Nodemailer · Google Auth Library · Joi · bcryptjs · Cloudinary · Multer (multer-storage-cloudinary) · morgan · cookie-parser
 
 ---
 
@@ -8,16 +8,17 @@
 
 ```
 WebTutorCenter_Client_BE/
-├── server.js                     # Entry point: load .env, kết nối DB, khởi động server
-├── app.js                        # Cấu hình Express: CORS, middleware, routes, error handler
+├── server.js                     # Entry: dotenv, connectDB, app.listen; PORT mặc định 5000 (nếu không set)
+├── app.js                        # Express: CORS (theo CLIENT_URL, mặc định http://localhost:3000), morgan, json/urlencoded, cookieParser, /api, error handler
 │
 ├── src/
 │   ├── routes/
-│   │   └── index.js              # Gom tất cả module routes vào tiền tố /api
+│   │   └── index.js              # Gom module routes; hiện chỉ mount /api/auth
 │   │
 │   ├── core/                     # Hạ tầng dùng chung toàn app
 │   │   ├── configs/
-│   │   │   └── database.js       # Kết nối MongoDB với Mongoose
+│   │   │   ├── database.js       # Kết nối MongoDB với Mongoose
+│   │   │   └── cloudinary.js     # Cấu hình cloudinary (CLOUDINARY_*), export instance dùng upload
 │   │   │
 │   │   ├── constants/            # Hằng số toàn app
 │   │   │   ├── accountType.js    # local | google
@@ -37,25 +38,39 @@ WebTutorCenter_Client_BE/
 │   │       ├── hash.js           # hashPassword() / comparePassword() — bcryptjs
 │   │       ├── otp.js            # generateOtp(), getOtpExpiry(), kiểm tra cooldown gửi lại
 │   │       ├── response.js       # successResponse() — chuẩn hoá response thành công
-│   │       └── token.js          # generateAccessToken/RefreshToken/ResetToken, verify...
+│   │       ├── token.js          # generateAccessToken/RefreshToken/ResetToken, verify...
+│   │       └── upload.js         # uploadAvatarMiddleware (multer + Cloudinary storage), deleteAvatarFromCloudinary
 │   │
 │   └── modules/                  # Tổ chức theo domain (module-based)
 │       ├── auth/
-│       │   ├── auth.controller.js    # Nhận request, gọi service, trả response
-│       │   ├── auth.routes.js        # Định nghĩa routes của module auth
-│       │   ├── auth.service.js       # Logic nghiệp vụ xác thực
-│       │   └── auth.validation.js    # Joi schemas validate request body
+│       │   ├── auth.controller.js    # Nhận request, gọi service, trả response (kể cả upload avatar, update profile)
+│       │   ├── auth.routes.js        # Định nghĩa routes /register … /update-profile, /upload-avatar
+│       │   ├── auth.service.js       # Logic nghiệp vụ xác thực; cập nhật user, avatar
+│       │   └── auth.validation.js    # Joi schemas validate request body (có updateProfile)
 │       │
 │       ├── otp/
 │       │   ├── otp.model.js          # Schema MongoDB: email, otp, type, expiresAt
 │       │   └── otp.repository.js     # Truy vấn DB cho OTP
 │       │
-│       └── users/
-│           ├── user.model.js         # Schema MongoDB: fullName, email, password, role...
-│           └── user.repository.js    # Truy vấn DB cho User
+│       ├── users/
+│       │   ├── user.model.js         # Schema User (fullName, email, role, type, phone, gender, dateOfBirth, avatar, …)
+│       │   ├── user.repository.js    # findByEmail, updateProfile, v.v. — được auth.service gọi
+│       │   ├── user.controller.js    # (file placeholder — rỗng, chưa dùng)
+│       │   ├── user.service.js       # (file placeholder — rỗng, chưa dùng)
+│       │   ├── user.validation.js    # (file placeholder — rỗng, chưa dùng)
+│       │   └── user.routes.js        # (file placeholder — rỗng, chưa mount ở src/routes)
+│       │
+│       └── tutors/
+│           ├── tutor.controller.js   # (file placeholder — rỗng)
+│           ├── tutor.model.js          # (file placeholder — rỗng)
+│           ├── tutor.repository.js     # (file placeholder — rỗng)
+│           ├── tutor.routes.js         # (file placeholder — rỗng)
+│           ├── tutor.service.js        # (file placeholder — rỗng)
+│           └── tutor.validation.js     # (file placeholder — rỗng)
 │
 ├── .env                          # Biến môi trường (xem bên dưới)
-└── package.json
+├── package.json
+└── STRUCTURE.md
 ```
 
 ---
@@ -64,7 +79,7 @@ WebTutorCenter_Client_BE/
 
 | Biến | Mô tả |
 |---|---|
-| `PORT` | Port server (mặc định 5002) |
+| `PORT` | Port server (mặc định `5000` trong `server.js` nếu không khai báo) |
 | `NODE_ENV` | `development` hoặc `production` |
 | `MONGODB_URI` | Chuỗi kết nối MongoDB |
 | `ACCESS_TOKEN_SECRET` | Secret ký JWT access token |
@@ -76,12 +91,15 @@ WebTutorCenter_Client_BE/
 | `GOOGLE_CLIENT_ID` | Google OAuth Client ID |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret |
 | `CLIENT_URL` | URL frontend (CORS origin) |
+| `CLOUDINARY_CLOUD_NAME` | Tên cloud Cloudinary |
+| `CLOUDINARY_API_KEY` | API key Cloudinary |
+| `CLOUDINARY_API_SECRET` | API secret Cloudinary |
 
 ---
 
 ## API Routes
 
-**Base:** `http://localhost:5002/api`
+**Base:** `http://localhost:<PORT>/api` (ví dụ: `http://localhost:5002/api` nếu bạn set `PORT=5002` trong `.env`)
 
 ### Auth — `/api/auth`
 
@@ -98,6 +116,8 @@ WebTutorCenter_Client_BE/
 | POST | `/verify-forgot-password-otp` | validate | Xác thực OTP quên mật khẩu |
 | POST | `/reset-password` | validate | Đặt lại mật khẩu mới |
 | GET | `/user-info` | authMiddleware | Lấy thông tin người dùng hiện tại |
+| PATCH | `/update-profile` | authMiddleware, validate | Cập nhật hồ sơ (vd: fullName, phone, gender, dateOfBirth) |
+| POST | `/upload-avatar` | authMiddleware, uploadAvatarMiddleware (multer → Cloudinary) | Tải ảnh đại diện (field `avatar`), cập nhật URL trên user |
 
 ---
 
@@ -106,21 +126,22 @@ WebTutorCenter_Client_BE/
 ```
 Request
   └── Express Router (app.js)
-        └── Middleware (CORS, JSON parser, Cookie parser)
+        └── Middleware (CORS, JSON parser, Cookie parser, morgan)
               └── routes/index.js  →  /api/auth/*
-                    └── auth.middleware.js  (nếu route cần xác thực)
-                          └── auth.validation.js  (validate request body với Joi)
-                                └── auth.controller.js
-                                      └── auth.service.js  (logic nghiệp vụ)
-                                            └── user.repository.js / otp.repository.js
-                                                  └── MongoDB (Mongoose)
+                    ├── auth.validation.js  (validate body với Joi, nếu route khai báo)
+                    ├── upload.js  (chỉ route /upload-avatar: multer + Cloudinary storage)
+                    ├── auth.middleware.js  (các route cần JWT: gắn req.user)
+                    └── auth.controller.js
+                          └── auth.service.js
+                                └── user.repository.js / otp.repository.js
+                                      └── MongoDB (Mongoose)
 ```
 
 ### Phân loại lỗi
 
 | Loại lỗi | Xử lý | Ví dụ |
 |---|---|---|
-| **Lỗi người dùng** (`AppError`) | Controller bắt → trả JSON `{ success: false, message }` trực tiếp | Sai mật khẩu, OTP hết hạn, email đã tồn tại |
+| **Lỗi người dùng** (`AppError`) | Controller bắt → trả JSON `{ success: false, message }` trực tiếp | Sai mật khẩu, OTP hết hạn, email đã tồn tại, sai loại file ảnh |
 | **Lỗi hệ thống** (Error thường) | `next(error)` → `error.middleware.js` → log + trả 500 | DB crash, lỗi không mong đợi |
 
 ---
