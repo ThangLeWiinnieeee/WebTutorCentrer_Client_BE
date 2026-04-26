@@ -223,6 +223,15 @@ const login = async ({ email, password }) => {
     throw new AppError("Tài khoản của bạn đã bị vô hiệu hóa", HTTP_STATUS.FORBIDDEN);
   }
 
+  // Tài khoản Google: không có hash mật khẩu — tránh gọi bcrypt (sẽ lỗi Illegal arguments: string, object)
+  if (user.type === ACCOUNT_TYPE.GOOGLE) {
+    throw new AppError(MESSAGE.EXISTING_ACCOUNT_GOOGLE, HTTP_STATUS.BAD_REQUEST);
+  }
+
+  if (typeof user.password !== "string" || !user.password) {
+    throw new AppError(MESSAGE.INVALID_CREDENTIALS, HTTP_STATUS.UNAUTHORIZED);
+  }
+
   const isPasswordValid = await comparePassword(password, user.password);
   if (!isPasswordValid) {
     throw new AppError(MESSAGE.INVALID_CREDENTIALS, HTTP_STATUS.UNAUTHORIZED);
