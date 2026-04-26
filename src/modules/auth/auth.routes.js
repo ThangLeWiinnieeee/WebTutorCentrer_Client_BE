@@ -10,11 +10,9 @@ const {
   forgotPasswordSchema,
   verifyForgotPasswordOtpSchema,
   resetPasswordSchema,
-  updateProfileSchema,
   validate,
 } = require("./auth.validation");
 const authMiddleware = require("../../core/middlewares/auth.middleware");
-const { uploadAvatarMiddleware } = require("../../core/utils/upload");
 
 // Đăng ký
 router.post("/register", validate(registerSchema), authController.register);
@@ -31,10 +29,5 @@ router.post("/refresh-token", authController.refreshToken);
 router.post("/forgot-password", validate(forgotPasswordSchema), authController.forgotPassword);
 router.post("/verify-forgot-password-otp", validate(verifyForgotPasswordOtpSchema), authController.verifyForgotPasswordOtp);
 router.post("/reset-password", validate(resetPasswordSchema), authController.resetPassword);
-
-// Thông tin người dùng
-router.get("/user-info", authMiddleware, authController.getUserInfo);
-router.post("/upload-avatar", authMiddleware, uploadAvatarMiddleware, authController.uploadAvatar);
-router.patch("/update-profile", authMiddleware, validate(updateProfileSchema), authController.updateProfile);
 
 module.exports = router;

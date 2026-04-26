@@ -13,7 +13,7 @@ WebTutorCenter_Client_BE/
 │
 ├── src/
 │   ├── routes/
-│   │   └── index.js              # Gom module routes; hiện chỉ mount /api/auth
+│   │   └── index.js              # Gom module routes: /api/auth, /api/users
 │   │
 │   ├── core/                     # Hạ tầng dùng chung toàn app
 │   │   ├── configs/
@@ -43,10 +43,10 @@ WebTutorCenter_Client_BE/
 │   │
 │   └── modules/                  # Tổ chức theo domain (module-based)
 │       ├── auth/
-│       │   ├── auth.controller.js    # Nhận request, gọi service, trả response (kể cả upload avatar, update profile)
-│       │   ├── auth.routes.js        # Định nghĩa routes /register … /update-profile, /upload-avatar
-│       │   ├── auth.service.js       # Logic nghiệp vụ xác thực; cập nhật user, avatar
-│       │   └── auth.validation.js    # Joi schemas validate request body (có updateProfile)
+│       │   ├── auth.controller.js    # Đăng ký, OTP, login Google/local, refresh/logout, quên mật khẩu
+│       │   ├── auth.routes.js        # Chỉ routes xác thực (/register … /reset-password, /login, /google, v.v.)
+│       │   ├── auth.service.js       # Logic xác thực (token, OTP, Google, mật khẩu); gọi user.repository
+│       │   └── auth.validation.js    # Joi cho register, login, OTP, forgot/reset password (không còn updateProfile)
 │       │
 │       ├── otp/
 │       │   ├── otp.model.js          # Schema MongoDB: email, otp, type, expiresAt
@@ -54,11 +54,11 @@ WebTutorCenter_Client_BE/
 │       │
 │       ├── users/
 │       │   ├── user.model.js         # Schema User (fullName, email, role, type, phone, gender, dateOfBirth, avatar, …)
-│       │   ├── user.repository.js    # findByEmail, updateProfile, v.v. — được auth.service gọi
-│       │   ├── user.controller.js    # (file placeholder — rỗng, chưa dùng)
-│       │   ├── user.service.js       # (file placeholder — rỗng, chưa dùng)
-│       │   ├── user.validation.js    # (file placeholder — rỗng, chưa dùng)
-│       │   └── user.routes.js        # (file placeholder — rỗng, chưa mount ở src/routes)
+│       │   ├── user.repository.js    # findByEmail, findById, updateProfile, … — auth.service + user.service gọi
+│       │   ├── user.controller.js    # getUserInfo, uploadAvatar, updateProfile
+│       │   ├── user.service.js       # Thông tin hồ sơ, cập nhật profile, upload avatar (xóa ảnh cũ Cloudinary)
+│       │   ├── user.validation.js    # Joi: updateProfile (body PATCH /update-profile)
+│       │   └── user.routes.js        # Mount tại /api/users — /user-info, /upload-avatar, /update-profile
 │       │
 │       └── tutors/
 │           ├── tutor.controller.js   # (file placeholder — rỗng)
@@ -115,9 +115,16 @@ WebTutorCenter_Client_BE/
 | POST | `/forgot-password` | validate | Gửi OTP quên mật khẩu |
 | POST | `/verify-forgot-password-otp` | validate | Xác thực OTP quên mật khẩu |
 | POST | `/reset-password` | validate | Đặt lại mật khẩu mới |
-| GET | `/user-info` | authMiddleware | Lấy thông tin người dùng hiện tại |
-| PATCH | `/update-profile` | authMiddleware, validate | Cập nhật hồ sơ (vd: fullName, phone, gender, dateOfBirth) |
-| POST | `/upload-avatar` | authMiddleware, uploadAvatarMiddleware (multer → Cloudinary) | Tải ảnh đại diện (field `avatar`), cập nhật URL trên user |
+
+### Users (hồ sơ) — `/api/users`
+
+Các route dưới đây yêu cầu **JWT hợp lệ** (`Authorization: Bearer ...`); `authMiddleware` gắn `req.user`.
+
+| Method | Endpoint | Middleware | Mô tả |
+|---|---|---|---|
+| GET | `/user-info` | authMiddleware | Lấy thông tin user hiện tại (đã format) |
+| PATCH | `/update-profile` | authMiddleware, validate (Joi) | Cập nhật hồ sơ: fullName, phone, gender, dateOfBirth |
+| POST | `/upload-avatar` | authMiddleware, uploadAvatarMiddleware (multer → Cloudinary) | Tải ảnh đại diện (field `avatar`), cập nhật URL, xóa ảnh cũ trên Cloudinary nếu có |
 
 ---
 
@@ -127,14 +134,22 @@ WebTutorCenter_Client_BE/
 Request
   └── Express Router (app.js)
         └── Middleware (CORS, JSON parser, Cookie parser, morgan)
-              └── routes/index.js  →  /api/auth/*
-                    ├── auth.validation.js  (validate body với Joi, nếu route khai báo)
-                    ├── upload.js  (chỉ route /upload-avatar: multer + Cloudinary storage)
-                    ├── auth.middleware.js  (các route cần JWT: gắn req.user)
-                    └── auth.controller.js
-                          └── auth.service.js
-                                └── user.repository.js / otp.repository.js
-                                      └── MongoDB (Mongoose)
+              └── routes/index.js
+                    ├── /api/auth/*
+                    │     ├── auth.validation.js  (Joi, nếu route khai báo)
+                    │     ├── auth.middleware.js  (logout: JWT)
+                    │     └── auth.controller.js
+                    │           └── auth.service.js
+                    │                 └── user.repository.js / otp.repository.js
+                    │
+                    └── /api/users/*
+                          ├── user.validation.js  (Joi: update-profile)
+                          ├── upload.js  (upload-avatar: multer + Cloudinary)
+                          ├── auth.middleware.js  (mọi route: JWT → req.user)
+                          └── user.controller.js
+                                └── user.service.js
+                                      └── user.repository.js
+                                            └── MongoDB (Mongoose)
 ```
 
 ### Phân loại lỗi
