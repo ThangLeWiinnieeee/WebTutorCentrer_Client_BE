@@ -1,182 +1,229 @@
-# Cấu trúc thư mục — Backend (WebTutorCenter_Client_BE)
+# Cấu trúc thư mục - Backend (WebTutorCenter_BE)
 
-> **Stack:** Node.js · Express · MongoDB · Mongoose · JWT · Nodemailer · Google Auth Library · Joi · bcryptjs · Cloudinary · Multer (multer-storage-cloudinary) · morgan · cookie-parser
-
----
+> **Stack:** Node.js, Express, MongoDB, Mongoose, JWT, Joi, bcryptjs, Nodemailer, Google Auth Library, Cloudinary, Multer, morgan, cookie-parser.
 
 ## Tổng quan
 
-```
-WebTutorCenter_Client_BE/
-├── server.js                     # Entry: dotenv, connectDB, app.listen; PORT mặc định 5000 (nếu không set)
-├── app.js                        # Express: CORS (theo CLIENT_URL, mặc định http://localhost:3000), morgan, json/urlencoded, cookieParser, /api, error handler
-│
+```text
+WebTutorCenter_BE/
+├── server.js                         # Entry: dotenv, connectDB, app.listen
+├── app.js                            # Express app: CORS, morgan, JSON parser, cookieParser, /api, error handler
+├── scripts/
+│   └── seedLocations.js              # Fetch provinces.open-api.vn và upsert Province/District vào MongoDB
 ├── src/
 │   ├── routes/
-│   │   └── index.js              # Gom module routes: /api/auth, /api/users
-│   │
-│   ├── core/                     # Hạ tầng dùng chung toàn app
+│   │   └── index.js                  # Mount /auth, /users, /tutors, /locations, /notifications
+│   ├── core/
 │   │   ├── configs/
-│   │   │   ├── database.js       # Kết nối MongoDB với Mongoose
-│   │   │   └── cloudinary.js     # Cấu hình cloudinary (CLOUDINARY_*), export instance dùng upload
-│   │   │
-│   │   ├── constants/            # Hằng số toàn app
-│   │   │   ├── accountType.js    # local | google
-│   │   │   ├── message.js        # Tất cả message trả về cho client
-│   │   │   ├── otpType.js        # register | forgot_password
-│   │   │   ├── role.js           # user | tutor | admin
-│   │   │   └── status.js         # HTTP status codes (200, 201, 400, 401...)
-│   │   │
+│   │   │   ├── cloudinary.js         # Cloudinary config
+│   │   │   ├── cors.js               # CORS options dùng trong app.js
+│   │   │   └── database.js           # Mongoose connection
+│   │   ├── constants/
+│   │   │   ├── accountType.js        # local | google
+│   │   │   ├── message.js            # Message dùng chung
+│   │   │   ├── otpType.js            # register | forgot_password
+│   │   │   ├── role.js               # user | tutor | admin
+│   │   │   └── status.js             # HTTP status constants
 │   │   ├── middlewares/
-│   │   │   ├── auth.middleware.js    # Xác thực JWT: gắn req.user vào request
-│   │   │   ├── error.middleware.js   # Xử lý lỗi hệ thống (5xx) — lỗi không mong đợi
-│   │   │   └── role.middleware.js    # Phân quyền theo role
-│   │   │
+│   │   │   ├── auth.middleware.js    # Verify JWT, gắn req.user
+│   │   │   ├── error.middleware.js   # Xử lý lỗi tập trung
+│   │   │   └── role.middleware.js    # authorize theo role
 │   │   └── utils/
-│   │       ├── AppError.js       # Class lỗi người dùng (isUserError: true) — trả JSON trực tiếp
-│   │       ├── email.js          # Gửi email OTP qua Nodemailer/Gmail
-│   │       ├── hash.js           # hashPassword() / comparePassword() — bcryptjs
-│   │       ├── otp.js            # generateOtp(), getOtpExpiry(), kiểm tra cooldown gửi lại
-│   │       ├── response.js       # successResponse() — chuẩn hoá response thành công
-│   │       ├── token.js          # generateAccessToken/RefreshToken/ResetToken, verify...
-│   │       └── upload.js         # uploadAvatarMiddleware (multer + Cloudinary storage), deleteAvatarFromCloudinary
-│   │
-│   └── modules/                  # Tổ chức theo domain (module-based)
+│   │       ├── AppError.js           # Lỗi nghiệp vụ/user-facing
+│   │       ├── email.js              # Gửi mail OTP
+│   │       ├── hash.js               # bcrypt hash/compare
+│   │       ├── otp.js                # Tạo OTP, expiry, cooldown
+│   │       ├── response.js           # successResponse/errorResponse
+│   │       ├── token.js              # JWT generate/verify
+│   │       └── upload.js             # Multer + Cloudinary avatar upload/delete
+│   └── modules/
 │       ├── auth/
-│       │   ├── auth.controller.js    # Đăng ký, OTP, login Google/local, refresh/logout, quên mật khẩu
-│       │   ├── auth.routes.js        # Chỉ routes xác thực (/register … /reset-password, /login, /google, v.v.)
-│       │   ├── auth.service.js       # Logic xác thực (token, OTP, Google, mật khẩu); gọi user.repository
-│       │   └── auth.validation.js    # Joi cho register, login, OTP, forgot/reset password (không còn updateProfile)
-│       │
+│       │   ├── auth.controller.js
+│       │   ├── auth.routes.js
+│       │   ├── auth.service.js
+│       │   └── auth.validation.js
+│       ├── locations/
+│       │   ├── location.controller.js
+│       │   ├── location.model.js     # Province, District schemas
+│       │   ├── location.repository.js
+│       │   ├── location.routes.js
+│       │   └── location.service.js
+│       ├── notifications/
+│       │   ├── notification.controller.js
+│       │   ├── notification.model.js # Notification + TTL readAt 7 ngày
+│       │   ├── notification.repository.js
+│       │   ├── notification.routes.js
+│       │   └── notification.service.js
 │       ├── otp/
-│       │   ├── otp.model.js          # Schema MongoDB: email, otp, type, expiresAt
-│       │   └── otp.repository.js     # Truy vấn DB cho OTP
-│       │
-│       ├── users/
-│       │   ├── user.model.js         # Schema User (fullName, email, role, type, phone, gender, dateOfBirth, avatar, …)
-│       │   ├── user.repository.js    # findByEmail, findById, updateProfile, … — auth.service + user.service gọi
-│       │   ├── user.controller.js    # getUserInfo, uploadAvatar, updateProfile
-│       │   ├── user.service.js       # Thông tin hồ sơ, cập nhật profile, upload avatar (xóa ảnh cũ Cloudinary)
-│       │   ├── user.validation.js    # Joi: updateProfile (body PATCH /update-profile)
-│       │   └── user.routes.js        # Mount tại /api/users — /user-info, /upload-avatar, /update-profile
-│       │
-│       └── tutors/
-│           ├── tutor.controller.js   # (file placeholder — rỗng)
-│           ├── tutor.model.js          # (file placeholder — rỗng)
-│           ├── tutor.repository.js     # (file placeholder — rỗng)
-│           ├── tutor.routes.js         # (file placeholder — rỗng)
-│           ├── tutor.service.js        # (file placeholder — rỗng)
-│           └── tutor.validation.js     # (file placeholder — rỗng)
-│
-├── .env                          # Biến môi trường (xem bên dưới)
+│       │   ├── otp.model.js
+│       │   └── otp.repository.js
+│       ├── tutors/
+│       │   ├── constants/
+│       │   │   ├── index.js
+│       │   │   ├── occupationStatus.js
+│       │   │   ├── subject.js
+│       │   │   └── tutor.js
+│       │   ├── tutor.controller.js
+│       │   ├── tutor.model.js        # Tutor profile, currentArea, teachingAreas, availability
+│       │   ├── tutor.repository.js
+│       │   ├── tutor.routes.js
+│       │   ├── tutor.service.js      # Đăng ký/duyệt/từ chối gia sư + tạo notification
+│       │   └── tutor.validation.js
+│       └── users/
+│           ├── user.controller.js
+│           ├── user.model.js
+│           ├── user.repository.js
+│           ├── user.routes.js
+│           ├── user.service.js
+│           └── user.validation.js
 ├── package.json
 └── STRUCTURE.md
 ```
 
----
+## Module hiện tại
 
-## Biến môi trường `.env`
+### `auth`
 
-| Biến | Mô tả |
-|---|---|
-| `PORT` | Port server (mặc định `5000` trong `server.js` nếu không khai báo) |
-| `NODE_ENV` | `development` hoặc `production` |
-| `MONGODB_URI` | Chuỗi kết nối MongoDB |
-| `ACCESS_TOKEN_SECRET` | Secret ký JWT access token |
-| `ACCESS_TOKEN_EXPIRES_IN` | Thời hạn access token (vd: `15m`) |
-| `REFRESH_TOKEN_SECRET` | Secret ký JWT refresh token |
-| `REFRESH_TOKEN_EXPIRES_IN` | Thời hạn refresh token (vd: `7d`) |
-| `GMAIL_USER` | Địa chỉ Gmail gửi OTP |
-| `GMAIL_PASS` | App password Gmail |
-| `GOOGLE_CLIENT_ID` | Google OAuth Client ID |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth Client Secret |
-| `CLIENT_URL` | URL frontend (CORS origin) |
-| `CLOUDINARY_CLOUD_NAME` | Tên cloud Cloudinary |
-| `CLOUDINARY_API_KEY` | API key Cloudinary |
-| `CLOUDINARY_API_SECRET` | API secret Cloudinary |
+Xử lý đăng ký, xác thực OTP, đăng nhập local/Google, refresh token, logout và quên mật khẩu. Controller chỉ nhận/trả response, service xử lý nghiệp vụ và gọi `users`/`otp` repository.
 
----
+### `users`
+
+Quản lý user profile: lấy thông tin user hiện tại, cập nhật hồ sơ, upload avatar Cloudinary, cập nhật role khi admin duyệt gia sư.
+
+### `tutors`
+
+Quản lý hồ sơ gia sư:
+
+- User đăng ký làm gia sư.
+- User xem tutor profile của chính mình.
+- Admin xem danh sách hồ sơ pending.
+- Admin approve/reject hồ sơ.
+- Khi register/approve/reject sẽ tạo notification tương ứng.
+
+`teachingAreas` hiện lưu theo cấu trúc một tỉnh/thành và nhiều quận/huyện:
+
+```js
+{
+  province: Number,
+  districts: [Number]
+}
+```
+
+`currentArea` là khu vực sống hiện tại:
+
+```js
+{
+  province: Number,
+  district: Number
+}
+```
+
+### `locations`
+
+Lưu và đọc dữ liệu tỉnh/thành, quận/huyện từ MongoDB. Dữ liệu được seed từ `provinces.open-api.vn` bằng `scripts/seedLocations.js`.
+
+### `notifications`
+
+Lưu thông báo theo `userId` trong MongoDB. Notification có `read`, `readAt`; TTL index tự xóa thông báo đã đọc sau 7 ngày kể từ `readAt`.
+
+### `otp`
+
+Lưu OTP theo email/type/expiry, phục vụ đăng ký và quên mật khẩu.
 
 ## API Routes
 
-**Base:** `http://localhost:<PORT>/api` (ví dụ: `http://localhost:5002/api` nếu bạn set `PORT=5002` trong `.env`)
+**Base:** `/api`
 
-### Auth — `/api/auth`
+### Auth - `/api/auth`
 
 | Method | Endpoint | Middleware | Mô tả |
 |---|---|---|---|
-| POST | `/register` | validate | Đăng ký tài khoản, gửi OTP email |
-| POST | `/verify-otp` | validate | Xác thực OTP kích hoạt tài khoản |
-| POST | `/resend-otp` | validate | Gửi lại OTP xác thực |
-| POST | `/google` | — | Đăng nhập bằng Google (ID token) |
+| POST | `/register` | validate | Đăng ký tài khoản, gửi OTP |
+| POST | `/verify-otp` | validate | Xác thực OTP |
+| POST | `/resend-otp` | validate | Gửi lại OTP |
+| POST | `/google` | - | Đăng nhập Google |
 | POST | `/login` | validate | Đăng nhập email/mật khẩu |
-| POST | `/logout` | authMiddleware | Đăng xuất, xoá refresh token |
-| POST | `/refresh-token` | — | Cấp lại access token từ cookie |
+| POST | `/logout` | authenticate | Đăng xuất |
+| POST | `/refresh-token` | - | Refresh access token từ cookie |
 | POST | `/forgot-password` | validate | Gửi OTP quên mật khẩu |
 | POST | `/verify-forgot-password-otp` | validate | Xác thực OTP quên mật khẩu |
-| POST | `/reset-password` | validate | Đặt lại mật khẩu mới |
+| POST | `/reset-password` | validate | Đặt lại mật khẩu |
 
-### Users (hồ sơ) — `/api/users`
-
-Các route dưới đây yêu cầu **JWT hợp lệ** (`Authorization: Bearer ...`); `authMiddleware` gắn `req.user`.
+### Users - `/api/users`
 
 | Method | Endpoint | Middleware | Mô tả |
 |---|---|---|---|
-| GET | `/user-info` | authMiddleware | Lấy thông tin user hiện tại (đã format) |
-| PATCH | `/update-profile` | authMiddleware, validate (Joi) | Cập nhật hồ sơ: fullName, phone, gender, dateOfBirth |
-| POST | `/upload-avatar` | authMiddleware, uploadAvatarMiddleware (multer → Cloudinary) | Tải ảnh đại diện (field `avatar`), cập nhật URL, xóa ảnh cũ trên Cloudinary nếu có |
+| GET | `/user-info` | authenticate | Lấy user hiện tại |
+| PATCH | `/update-profile` | authenticate, validate | Cập nhật profile |
+| POST | `/upload-avatar` | authenticate, uploadAvatarMiddleware | Upload avatar |
 
----
+### Tutors - `/api/tutors`
 
-## Luồng xử lý request
+| Method | Endpoint | Middleware | Mô tả |
+|---|---|---|---|
+| POST | `/register` | authenticate, validate | Đăng ký làm gia sư |
+| GET | `/profile` | authenticate | Lấy hồ sơ gia sư của user hiện tại |
+| GET | `/admin/pending` | authenticate, authorize admin | Admin lấy hồ sơ đang chờ duyệt |
+| PATCH | `/admin/:id/approve` | authenticate, authorize admin | Admin duyệt hồ sơ, đổi role user thành tutor |
+| PATCH | `/admin/:id/reject` | authenticate, authorize admin, validate | Admin từ chối hồ sơ |
 
-```
+### Locations - `/api/locations`
+
+| Method | Endpoint | Middleware | Mô tả |
+|---|---|---|---|
+| GET | `/provinces` | - | Lấy danh sách tỉnh/thành |
+| GET | `/provinces/:provinceCode/districts` | - | Lấy quận/huyện theo tỉnh/thành |
+
+### Notifications - `/api/notifications`
+
+| Method | Endpoint | Middleware | Mô tả |
+|---|---|---|---|
+| GET | `/` | authenticate | Lấy thông báo của user hiện tại |
+| PATCH | `/:id/read` | authenticate | Đánh dấu một thông báo đã đọc |
+| PATCH | `/read-all` | authenticate | Đánh dấu tất cả thông báo đã đọc |
+
+## Luồng xử lý chuẩn
+
+```text
 Request
-  └── Express Router (app.js)
-        └── Middleware (CORS, JSON parser, Cookie parser, morgan)
-              └── routes/index.js
-                    ├── /api/auth/*
-                    │     ├── auth.validation.js  (Joi, nếu route khai báo)
-                    │     ├── auth.middleware.js  (logout: JWT)
-                    │     └── auth.controller.js
-                    │           └── auth.service.js
-                    │                 └── user.repository.js / otp.repository.js
-                    │
-                    └── /api/users/*
-                          ├── user.validation.js  (Joi: update-profile)
-                          ├── upload.js  (upload-avatar: multer + Cloudinary)
-                          ├── auth.middleware.js  (mọi route: JWT → req.user)
-                          └── user.controller.js
-                                └── user.service.js
-                                      └── user.repository.js
-                                            └── MongoDB (Mongoose)
+  -> app.js middleware
+  -> src/routes/index.js
+  -> module.routes.js
+  -> auth/role/validate middleware
+  -> module.controller.js
+  -> module.service.js
+  -> module.repository.js
+  -> MongoDB/Mongoose
 ```
 
-### Phân loại lỗi
+## Quy ước module
 
-| Loại lỗi | Xử lý | Ví dụ |
-|---|---|---|
-| **Lỗi người dùng** (`AppError`) | Controller bắt → trả JSON `{ success: false, message }` trực tiếp | Sai mật khẩu, OTP hết hạn, email đã tồn tại, sai loại file ảnh |
-| **Lỗi hệ thống** (Error thường) | `next(error)` → `error.middleware.js` → log + trả 500 | DB crash, lỗi không mong đợi |
-
----
-
-## Cấu trúc mỗi module
-
-```
-modules/<tên-module>/
-├── <module>.controller.js    # Nhận req/res, gọi service, trả response
-├── <module>.routes.js        # Định nghĩa routes, gắn middleware + controller
-├── <module>.service.js       # Logic nghiệp vụ, throw AppError khi có lỗi người dùng
-├── <module>.validation.js    # Joi schemas để validate request body
-├── <module>.model.js         # Mongoose schema (nếu có collection riêng)
-└── <module>.repository.js    # Các hàm truy vấn MongoDB (findBy..., create, update...)
+```text
+modules/<module>/
+├── <module>.controller.js     # Nhận req/res, gọi service, trả successResponse()
+├── <module>.routes.js         # Khai báo endpoint và middleware
+├── <module>.service.js        # Logic nghiệp vụ, throw AppError
+├── <module>.repository.js     # Truy vấn DB
+├── <module>.model.js          # Mongoose schema nếu module có collection
+└── <module>.validation.js     # Joi schema nếu có request cần validate
 ```
 
-## Thêm module mới
+## Biến môi trường
 
-1. Tạo thư mục `src/modules/<tên>/` theo cấu trúc trên
-2. Đăng ký routes trong `src/routes/index.js`
-3. Thêm constants cần thiết vào `src/core/constants/`
-4. Dùng `AppError` cho lỗi nghiệp vụ, không dùng `throw new Error()` thông thường
-5. Dùng `successResponse()` để trả response thành công
+| Biến | Mô tả |
+|---|---|
+| `PORT` | Port backend |
+| `NODE_ENV` | Môi trường chạy |
+| `MONGODB_URI` | MongoDB connection string |
+| `CLIENT_URL` | Frontend origin cho CORS |
+| `ACCESS_TOKEN_SECRET` | Secret access token |
+| `ACCESS_TOKEN_EXPIRES_IN` | Thời hạn access token |
+| `REFRESH_TOKEN_SECRET` | Secret refresh token |
+| `REFRESH_TOKEN_EXPIRES_IN` | Thời hạn refresh token |
+| `GMAIL_USER` | Gmail gửi OTP |
+| `GMAIL_PASS` | App password Gmail |
+| `GOOGLE_CLIENT_ID` | Google OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name |
+| `CLOUDINARY_API_KEY` | Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret |
