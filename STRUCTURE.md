@@ -1,4 +1,4 @@
-# Cấu trúc thư mục — Backend (WebTutorCenter_Client_BE)
+# Cấu trúc thư mục — Backend (WebTutorCenter_BE)
 
 > **Stack:** Node.js · Express · MongoDB · Mongoose · JWT · Nodemailer · Google Auth Library · Joi · bcryptjs · Cloudinary · Multer (multer-storage-cloudinary) · morgan · cookie-parser
 
@@ -7,7 +7,7 @@
 ## Tổng quan
 
 ```
-WebTutorCenter_Client_BE/
+WebTutorCenter_BE/
 ├── server.js                     # Entry: dotenv, connectDB, app.listen; PORT mặc định 5000 (nếu không set)
 ├── app.js                        # Express: CORS (theo CLIENT_URL, mặc định http://localhost:3000), morgan, json/urlencoded, cookieParser, /api, error handler
 │
@@ -20,12 +20,13 @@ WebTutorCenter_Client_BE/
 │   │   │   ├── database.js       # Kết nối MongoDB với Mongoose
 │   │   │   └── cloudinary.js     # Cấu hình cloudinary (CLOUDINARY_*), export instance dùng upload
 │   │   │
-│   │   ├── constants/            # Hằng số toàn app
+│   │   ├── constants/            # Hằng số dùng chung nhiều module
 │   │   │   ├── accountType.js    # local | google
 │   │   │   ├── message.js        # Tất cả message trả về cho client
 │   │   │   ├── otpType.js        # register | forgot_password
 │   │   │   ├── role.js           # user | tutor | admin
 │   │   │   └── status.js         # HTTP status codes (200, 201, 400, 401...)
+│   │   │   # Lưu ý: constants chỉ phục vụ 1 module → đặt trong module đó (vd: src/modules/tutors/constants/)
 │   │   │
 │   │   ├── middlewares/
 │   │   │   ├── auth.middleware.js    # Xác thực JWT: gắn req.user vào request
@@ -61,12 +62,18 @@ WebTutorCenter_Client_BE/
 │       │   └── user.routes.js        # Mount tại /api/users — /user-info, /upload-avatar, /update-profile
 │       │
 │       └── tutors/
-│           ├── tutor.controller.js   # (file placeholder — rỗng)
-│           ├── tutor.model.js          # (file placeholder — rỗng)
-│           ├── tutor.repository.js     # (file placeholder — rỗng)
-│           ├── tutor.routes.js         # (file placeholder — rỗng)
-│           ├── tutor.service.js        # (file placeholder — rỗng)
-│           └── tutor.validation.js     # (file placeholder — rỗng)
+│           ├── constants/             # Hằng số riêng module tutor
+│           │   ├── index.js           # Re-export tất cả
+│           │   ├── subject.js         # Danh sách môn học
+│           │   ├── area.js            # Danh sách tỉnh/thành VN
+│           │   ├── occupationStatus.js # student | graduated | teacher
+│           │   └── tutor.js           # TUTOR_STATUS, DAYS_OF_WEEK, PHONE_REGEX, TIME_REGEX
+│           ├── tutor.controller.js
+│           ├── tutor.model.js         # Schema Tutor + pre('save')/pre('findOneAndUpdate') validate rejectionReason
+│           ├── tutor.repository.js
+│           ├── tutor.routes.js
+│           ├── tutor.service.js
+│           └── tutor.validation.js    # Joi schema cho registerTutor (gồm availability)
 │
 ├── .env                          # Biến môi trường (xem bên dưới)
 ├── package.json
@@ -177,6 +184,8 @@ modules/<tên-module>/
 
 1. Tạo thư mục `src/modules/<tên>/` theo cấu trúc trên
 2. Đăng ký routes trong `src/routes/index.js`
-3. Thêm constants cần thiết vào `src/core/constants/`
+3. Constants:
+   - Dùng chung nhiều module → `src/core/constants/`
+   - Chỉ dùng trong 1 module → `src/modules/<tên>/constants/` (ưu tiên giảm coupling)
 4. Dùng `AppError` cho lỗi nghiệp vụ, không dùng `throw new Error()` thông thường
 5. Dùng `successResponse()` để trả response thành công

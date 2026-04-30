@@ -45,6 +45,13 @@ const MESSAGE = {
   // Validation
   VALIDATION_ERROR: "Dữ liệu đầu vào không hợp lệ",
 
+  // Tutor
+  TUTOR_REGISTER_SUCCESS: "Đăng ký làm gia sư thành công, vui lòng chờ phê duyệt",
+  TUTOR_ALREADY_REGISTERED: "Bạn đã đăng ký làm gia sư trước đó",
+  TUTOR_NOT_FOUND: "Không tìm thấy thông tin gia sư",
+  TUTOR_GET_SUCCESS: "Lấy thông tin gia sư thành công",
+  TUTOR_UPDATE_SUCCESS: "Cập nhật thông tin gia sư thành công",
+
   // Server
   INTERNAL_SERVER_ERROR: "Lỗi máy chủ nội bộ",
   FORBIDDEN: "Bạn không có quyền thực hiện hành động này",
