@@ -37,7 +37,21 @@ const getDistricts = async (req, res, next) => {
   }
 };
 
+const getSchools = async (req, res, next) => {
+  try {
+    const { q } = req.query;
+    const schools = await locationService.searchSchools(q || "");
+    return successResponse(res, {
+      message: "Lấy danh sách trường thành công",
+      data: { schools },
+    });
+  } catch (error) {
+    handleError(error, res, next);
+  }
+};
+
 module.exports = {
   getProvinces,
   getDistricts,
+  getSchools,
 };

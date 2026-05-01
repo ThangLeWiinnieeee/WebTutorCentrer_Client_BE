@@ -1,4 +1,4 @@
-const { Province, District } = require("./location.model");
+const { Province, District, School } = require("./location.model");
 
 const findAllProvinces = async () => {
   return await Province.find({}).sort({ name: 1 }).lean();
@@ -38,6 +38,52 @@ const bulkUpsertDistricts = async (districts) => {
   return await District.bulkWrite(ops);
 };
 
+const removeVietnameseTones = (str) => {
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D");
+};
+
+const escapeRegex = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const searchSchools = async (query, limit = 20) => {
+  if (!query || !query.trim()) {
+    return await School.find({}).sort({ name: 1 }).limit(limit).lean();
+  }
+
+  const trimmed = query.trim();
+  const words = trimmed.split(/\s+/).filter(Boolean);
+  const queryNoTone = removeVietnameseTones(trimmed);
+  const wordsNoTone = queryNoTone.split(/\s+/).filter(Boolean);
+
+  const nameConditions = words.map((w) => ({
+    name: { $regex: escapeRegex(w), $options: "i" },
+  }));
+
+  const nameSearchConditions = wordsNoTone.map((w) => ({
+    nameSearch: { $regex: escapeRegex(w), $options: "i" },
+  }));
+
+  const filter = {
+    $or: [{ $and: nameConditions }, { $and: nameSearchConditions }],
+  };
+
+  return await School.find(filter).sort({ name: 1 }).limit(limit).lean();
+};
+
+const bulkUpsertSchools = async (schools) => {
+  const ops = schools.map((s) => ({
+    updateOne: {
+      filter: { name: s.name },
+      update: { $set: { ...s, nameSearch: removeVietnameseTones(s.name) } },
+      upsert: true,
+    },
+  }));
+  return await School.bulkWrite(ops);
+};
+
 module.exports = {
   findAllProvinces,
   findDistrictsByProvinceCode,
@@ -45,4 +91,6 @@ module.exports = {
   findDistrictByCode,
   bulkUpsertProvinces,
   bulkUpsertDistricts,
+  searchSchools,
+  bulkUpsertSchools,
 };

@@ -89,7 +89,7 @@ const registerTutor = async (userId, tutorData) => {
 const getTutorProfile = async (userId) => {
   const tutor = await tutorRepository.findByUserId(userId);
   if (!tutor) {
-    throw new AppError(MESSAGE.TUTOR_NOT_FOUND, HTTP_STATUS.NOT_FOUND);
+    return null;
   }
 
   const user = await userRepository.findById(userId);
@@ -148,10 +148,19 @@ const rejectTutor = async (tutorId, rejectionReason) => {
   return await _formatTutor(updated, null);
 };
 
+const getDashboardStats = async () => {
+  const pendingCount = await tutorRepository.countByStatus(TUTOR_STATUS.PENDING);
+  const approvedCount = await tutorRepository.countByStatus(TUTOR_STATUS.APPROVED);
+  const rejectedCount = await tutorRepository.countByStatus(TUTOR_STATUS.REJECTED);
+
+  return { pendingCount, approvedCount, rejectedCount };
+};
+
 module.exports = {
   registerTutor,
   getTutorProfile,
   getPendingTutors,
+  getDashboardStats,
   approveTutor,
   rejectTutor,
 };

@@ -30,6 +30,10 @@ const findAllPending = async () => {
     .sort({ createdAt: -1 });
 };
 
+const countByStatus = async (status) => {
+  return await Tutor.countDocuments({ status });
+};
+
 const findAll = async () => {
   return await Tutor.find({})
     .populate("userId", POPULATE_USER)
@@ -43,5 +47,6 @@ module.exports = {
   update,
   updateByUserId,
   findAllPending,
+  countByStatus,
   findAll,
 };

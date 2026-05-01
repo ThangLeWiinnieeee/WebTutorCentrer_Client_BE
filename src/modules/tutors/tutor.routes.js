@@ -10,6 +10,7 @@ router.post("/register", authMiddleware, validate(registerTutorSchema), tutorCon
 router.get("/profile", authMiddleware, tutorController.getTutorProfile);
 
 // Admin routes
+router.get("/admin/stats", authMiddleware, roleMiddleware("admin"), tutorController.getDashboardStats);
 router.get("/admin/pending", authMiddleware, roleMiddleware("admin"), tutorController.getPendingTutors);
 router.patch("/admin/:id/approve", authMiddleware, roleMiddleware("admin"), tutorController.approveTutor);
 router.patch("/admin/:id/reject", authMiddleware, roleMiddleware("admin"), validate(rejectTutorSchema), tutorController.rejectTutor);
