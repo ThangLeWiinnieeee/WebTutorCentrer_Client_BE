@@ -78,10 +78,24 @@ const rejectTutor = async (req, res, next) => {
   }
 };
 
+const getDashboardStats = async (req, res, next) => {
+  try {
+    const stats = await tutorService.getDashboardStats();
+    return successResponse(res, {
+      statusCode: HTTP_STATUS.OK,
+      message: "Lấy thống kê dashboard thành công",
+      data: { stats },
+    });
+  } catch (error) {
+    handleError(error, res, next);
+  }
+};
+
 module.exports = {
   registerTutor,
   getTutorProfile,
   getPendingTutors,
+  getDashboardStats,
   approveTutor,
   rejectTutor,
 };

@@ -60,7 +60,41 @@ const districtSchema = new mongoose.Schema(
 
 districtSchema.index({ provinceCode: 1, name: 1 });
 
+const schoolSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    nameSearch: {
+      type: String,
+      trim: true,
+    },
+    shortName: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+    type: {
+      type: String,
+      enum: ["university", "college", "academy"],
+      required: true,
+    },
+    provinceCode: {
+      type: Number,
+      default: null,
+    },
+  },
+  { timestamps: false }
+);
+
+schoolSchema.index({ name: "text", shortName: "text" });
+schoolSchema.index({ type: 1, name: 1 });
+schoolSchema.index({ nameSearch: 1 });
+
 const Province = mongoose.model("Province", provinceSchema);
 const District = mongoose.model("District", districtSchema);
+const School = mongoose.model("School", schoolSchema);
 
-module.exports = { Province, District };
+module.exports = { Province, District, School };

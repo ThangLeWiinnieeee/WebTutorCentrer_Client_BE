@@ -14,7 +14,12 @@ const getDistrictsByProvince = async (provinceCode) => {
   return await locationRepository.findDistrictsByProvinceCode(provinceCode);
 };
 
+const searchSchools = async (query) => {
+  return await locationRepository.searchSchools(query);
+};
+
 module.exports = {
   getProvinces,
   getDistrictsByProvince,
+  searchSchools,
 };
