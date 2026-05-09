@@ -1,6 +1,6 @@
 # WebTutorCenter Backend
 
-Backend API cho hệ thống quản lý trung tâm gia sư trực tuyến. Dự án dùng Express + MongoDB theo kiến trúc module/layer rõ ràng: `routes -> controller -> service -> repository -> model`.
+Backend API cho hệ thống quản lý trung tâm gia sư trực tuyến. Dự án dùng Express + MongoDB theo kiến trúc layer rõ ràng: `routes -> controller -> service -> mapper -> repository -> model`.
 
 ## Tech Stack
 
@@ -60,20 +60,17 @@ Script này upsert dữ liệu `Province` và `District`, có thể chạy lại
 
 ```text
 src/
-├── core/
-│   ├── configs/          # database, cloudinary, cors
-│   ├── constants/        # status, message, role, otpType, accountType
-│   ├── middlewares/      # auth, role, error
-│   └── utils/            # token, response, hash, email, otp, upload, AppError
-├── modules/
-│   ├── auth/             # đăng ký, login, Google login, OTP, refresh/logout, reset password
-│   ├── users/            # user info, update profile, upload avatar
-│   ├── tutors/           # đăng ký gia sư, hồ sơ gia sư, admin approve/reject
-│   ├── locations/        # provinces/districts API
-│   ├── notifications/    # notification theo userId, mark read, TTL delete
-│   └── otp/              # OTP model/repository dùng nội bộ bởi auth
-└── routes/
-    └── index.js          # mount module routes dưới /api
+├── controllers/        # Nhận req/res, gọi service, trả successResponse()
+├── services/           # Logic nghiệp vụ, throw AppError
+├── mappers/            # Chuyển đổi DB document → DTO (UserMapper, TutorMapper, NotificationMapper)
+├── repositories/       # Truy vấn MongoDB/Mongoose
+├── models/             # Mongoose schema
+├── validations/        # Joi schema cho request validation
+├── routes/             # Khai báo endpoint và middleware, index.js mount dưới /api
+├── configs/            # database, cloudinary, cors
+├── constants/          # status, message, role, otpType, accountType + tutor/
+├── middlewares/        # auth, role, error
+└── utils/              # token, response, hash, email, otp, upload, AppError
 ```
 
 Chi tiết cấu trúc xem thêm `STRUCTURE.md`.
@@ -140,6 +137,7 @@ Chi tiết cấu trúc xem thêm `STRUCTURE.md`.
 
 - Controller chỉ nhận request, gọi service và trả `successResponse()`.
 - Service chứa logic nghiệp vụ, gọi repository, throw `AppError` cho lỗi người dùng.
+- Mapper chịu trách nhiệm chuyển đổi DB document thành DTO; service gọi mapper, không tự format response inline.
 - Repository chỉ thao tác MongoDB/Mongoose.
 - Joi validation đặt trong `<module>.validation.js`.
 - Endpoint mới phải mount trong `src/routes/index.js` nếu tạo module mới.

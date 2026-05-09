@@ -40,6 +40,10 @@ WebTutorCenter_BE/
 │   │   ├── tutor.service.js          # Đăng ký/duyệt/từ chối gia sư + tạo notification
 │   │   ├── location.service.js
 │   │   └── notification.service.js
+│   ├── mappers/
+│   │   ├── user.mapper.js            # UserMapper.toDTO — chuyển User document → DTO
+│   │   ├── tutor.mapper.js           # TutorMapper.toDTO/toDTOList — resolve area codes, cache per-request
+│   │   └── notification.mapper.js    # NotificationMapper.toDTO/toDTOList
 │   ├── repositories/
 │   │   ├── user.repository.js
 │   │   ├── tutor.repository.js
@@ -85,6 +89,7 @@ WebTutorCenter_BE/
 src/
 ├── controllers/    # Nhận req/res, gọi service, trả successResponse()
 ├── services/       # Logic nghiệp vụ, throw AppError
+├── mappers/        # Chuyển đổi DB document → DTO (UserMapper, TutorMapper, NotificationMapper)
 ├── repositories/   # Truy vấn DB
 ├── models/         # Mongoose schema
 ├── validations/    # Joi schema cho request validation
@@ -207,6 +212,7 @@ Request
   -> auth/role/validate middleware
   -> <module>.controller.js
   -> <module>.service.js
+  -> <module>.mapper.js (DB document → DTO)
   -> <module>.repository.js
   -> MongoDB/Mongoose
 ```
@@ -217,6 +223,7 @@ Request
 controllers/<module>.controller.js     # Nhận req/res, gọi service, trả successResponse()
 routes/<module>.routes.js              # Khai báo endpoint và middleware
 services/<module>.service.js           # Logic nghiệp vụ, throw AppError
+mappers/<module>.mapper.js             # Chuyển đổi DB document → DTO
 repositories/<module>.repository.js    # Truy vấn DB
 models/<module>.model.js               # Mongoose schema nếu module có collection
 validations/<module>.validation.js     # Joi schema nếu có request cần validate
